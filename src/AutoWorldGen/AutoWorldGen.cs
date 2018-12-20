@@ -76,17 +76,17 @@ namespace AutoWorldGen
                 string newSeed = reader.ReadLine();
                 if (newSeed != null)
                 {
-                    Debug.Log($"{System.DateTime.Now} - Setting seed: {newSeed}");
+                    Debug.Log($"AWG: {System.DateTime.Now} - Setting seed: {newSeed}");
                     input = newSeed;
                 }
                 else
                 {
-                    Debug.Log($"{System.DateTime.Now} - End of file reached, falling back to random seed");
+                    Debug.Log($"AWG: {System.DateTime.Now} - End of file reached, falling back to random seed");
                 }
             }
             catch (Exception e)
             {
-                Debug.Log($"{System.DateTime.Now} - Error reading line, falling back to random seed");
+                Debug.Log($"AWG: {System.DateTime.Now} - Error reading line, falling back to random seed");
                 Debug.Log(e);
             }
         }
@@ -97,33 +97,55 @@ namespace AutoWorldGen
     {
         public static void Prefix(ref bool custom_game)
         {
+            Debug.Log($"AWG: MinionSelectScreen.OnSpawn");
             custom_game = true;
         }
     }
 
     [HarmonyPatch(typeof(MinionSelectScreen), "OnSpawn")]
-    public static class Embark
+    public static class SkipEmbark
     {
         public static void Postfix(MinionSelectScreen __instance)
         {
             Debug.Log($"AWG: MinionSelectScreen.OnSpawn");
+
+            Traverse.Create(__instance).Method("OnProceed").GetValue();
+        }
+    }
+
+    // required to skip embark without crash
+    [HarmonyPatch(typeof(NewBaseScreen), "SpawnMinions")]
+    public static class DisableMinionsSpawn
+    {
+        public static bool Prefix()
+        {
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(WattsonMessage), "OnSpawn")]
+    public static class SkipWattsonMessage
+    {
+        public static void Postfix(WattsonMessage __instance)
+        {
             __instance.Deactivate();
 
-            WorldInit();
+            SaveGame.Instance.worldGenSpawner.SpawnEverything();
 
             // probably should wait a bit then send the seed from here
 
-            GoToMainMenu();
+            ScreenPrefabs.Instance.StartCoroutine(DelayedCoroutine());
         }
 
-        // not sure if all of this stuff is required for proper world gen
-        // some testing needed
-        private static void WorldInit()
+        private static IEnumerator DelayedCoroutine()
         {
-            Game.Instance.Trigger((int)GameHashes.StartGameUser, null);
+            Debug.Log("AWG: SkipWattson before wait");
 
-            Game.Instance.UpdateGameActiveRegion(0, 0, Grid.WidthInCells, Grid.HeightInCells);
-            SaveGame.Instance.worldGenSpawner.SpawnEverything();
+            yield return new WaitForSeconds(1);
+        
+            Debug.Log("AWG: SkipWattson past wait");
+
+            GoToMainMenu();
         }
 
         private static void GoToMainMenu()
@@ -131,6 +153,15 @@ namespace AutoWorldGen
             LoadScreen.ForceStopGame();
             ProcGenGame.WorldGen.Reset();
             App.LoadScene("frontend");
+        }
+    }
+
+    [HarmonyPatch(typeof(Geyser), "OnSpawn")]
+    public static class GeyserOnSpawn
+    {
+        public static void Postfix()
+        {
+            Debug.Log("geyser onspawn");
         }
     }
 }
