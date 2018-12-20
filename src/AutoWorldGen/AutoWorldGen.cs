@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -66,12 +67,28 @@ namespace AutoWorldGen
     [HarmonyPatch(typeof(NewGameSettingsScreen), "SetSeedSetting")]
     public static class SetSeed
     {
+        private static readonly StreamReader reader = new StreamReader("Seeds.txt");
+
         public static void Prefix(ref string input)
         {
-            // TODO: get seed from file OR leave it alone for random
-            string newSeed = "123456";
-            Debug.Log("Setting seed: " + newSeed);
-            input = newSeed;
+            try
+            {
+                string newSeed = reader.ReadLine();
+                if (newSeed != null)
+                {
+                    Debug.Log($"{System.DateTime.Now} - Setting seed: {newSeed}");
+                    input = newSeed;
+                }
+                else
+                {
+                    Debug.Log($"{System.DateTime.Now} - End of file reached, falling back to random seed");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.Log($"{System.DateTime.Now} - Error reading line, falling back to random seed");
+                Debug.Log(e);
+            }
         }
     }
 
