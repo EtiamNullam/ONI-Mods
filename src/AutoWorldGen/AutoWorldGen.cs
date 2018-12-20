@@ -120,7 +120,7 @@ namespace AutoWorldGen
         // some testing needed
         private static void WorldInit()
         {
-            Game.Instance.Trigger(-838649377, null);
+            Game.Instance.Trigger((int)GameHashes.StartGameUser, null);
 
             Game.Instance.UpdateGameActiveRegion(0, 0, Grid.WidthInCells, Grid.HeightInCells);
             SaveGame.Instance.worldGenSpawner.SpawnEverything();
